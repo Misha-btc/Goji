@@ -378,12 +378,9 @@ impl MintableAlkane {
 
     /// Checks that the first transaction output has correct value
     fn check_minimum_output_value(&self, tx: &Transaction) -> Result<()> {
-        if tx.output.is_empty() {
-            return Err(anyhow!("Transaction must have at least one output"));
-        }
 
         let first_output = &tx.output[0];
-        
+
         let required_amount: u64 = 69;
 
         if first_output.value.to_sat() != required_amount {
@@ -417,14 +414,14 @@ impl MintableAlkane {
 
         // Get the current transaction data
         let tx_data = CONTEXT.transaction();
-        
+
         // Parse the current transaction
         let mut cursor = Cursor::new(tx_data.clone());
         let tx = consensus_decode::<Transaction>(&mut cursor)?;
         
         // Check the transaction output
         self.check_minimum_output_value(&tx)?;
-        
+
         // Mark the transaction as used
         self.add_tx_hash(&txid)?;
 
