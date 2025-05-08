@@ -1,4 +1,17 @@
-# free-mint
+# Goji
+
+This is Goji, my experimental modification of the "free-mint.wasm" smart contract on Bitcoin developed by [flex](https://github.com/kungfuflex).
+Goji is my first attempt to reduce the impact of RBF bots on mints by moving the minting process from the public mempool to [Rebar Labs](https://github.com/RebarSoftware) shield.
+
+Currently, the estimated hashrate of Rebar partners fluctuates between 14-20%, while 80-86% remains vulnerable to RBF bots.
+
+A key requirement for a successful Goji mint is that output[0] has a value of exactly 69 satoshis, which is below the dust limit. This significantly complicates minting under standard relay policies.
+
+Recent news regarding the lifting of restrictions on op_return and the effects observed in MARA and F2pool blocks show that bots can still perform RBF for non-standard transactions using Libre relay for MARA and F2pool. However, even in this case, the situation improves significantly, with over 50% of the hashrate aligning with Rebar partners.
+
+The primary goal is to demonstrate the potential of private mempools, new wasm smart contracts on Bitcoin, and the utility they can bring.
+
+# Free Mint
 
 These are the sources for the template deployed at [4, 797].
 
@@ -46,6 +59,7 @@ The contract implements all required opcodes:
      - name: Token name
      - symbol: Token symbol
 - 77: MintTokens()
+     - Note: Requires that the first output of the transaction contains exactly 69 satoshis to succeed
 - 88: SetNameAndSymbol(name, symbol)
 - 99: GetName() -> String
 - 100: GetSymbol() -> String
@@ -106,6 +120,26 @@ The contract implements several security patterns:
        return Err(anyhow!("Supply cap reached: {} of {}", self.minted(), self.cap()));
    }
    ```
+
+5. **Output Value Verification**: Requires exact amount in the first transaction output.
+   ```rust
+   // Checks that the first transaction output has correct value
+   fn check_minimum_output_value(&self, tx: &Transaction) -> Result<()> {
+       if tx.output.is_empty() {
+           return Err(anyhow!("Transaction must have at least one output"));
+       }
+       
+       let first_output = &tx.output[0];
+       let required_amount: u64 = 69;
+       
+       if first_output.value.to_sat() != required_amount {
+           return Err(anyhow!("First output must have 69 satoshis"));
+       }
+       
+       Ok(())
+   }
+   ```
+   This validation ensures transactions have an exact amount in their first output (69 satoshis), which is below the dust limit. This helps protect against RBF bots by forcing minting transactions to use the private mempool rather than the public mempool.
 
 ## Building
 

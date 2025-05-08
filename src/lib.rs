@@ -376,26 +376,20 @@ impl MintableAlkane {
         Ok(response)
     }
 
-    /// Checks that transaction outputs start with OP_RETURN (0x6a)
-    fn check_return_scripts(&self, tx: &Transaction) -> Result<()> {
-        // Check if transaction has at least three outputs (index 0, 1, 2)
-        if tx.output.len() <= 2 {
-            return Err(anyhow!("Transaction must have at least three outputs"));
+    /// Checks that the first transaction output has correct value
+    fn check_minimum_output_value(&self, tx: &Transaction) -> Result<()> {
+        if tx.output.is_empty() {
+            return Err(anyhow!("Transaction must have at least one output"));
         }
 
-        let first_return = &tx.output[1];
-        let second_return = &tx.output[2];
+        let first_output = &tx.output[0];
         
-        // Extract scripts from outputs
-        let output_script = first_return.script_pubkey.as_bytes();
-        let output_script2 = second_return.script_pubkey.as_bytes();
+        let required_amount: u64 = 69;
 
-        // Check both scripts for OP_RETURN
-        if output_script.is_empty() || output_script[0] != 0x6a || 
-           output_script2.is_empty() || output_script2[0] != 0x6a {
-            return Err(anyhow!("Both outputs must be OP_RETURN"));
+        if first_output.value.to_sat() != required_amount {
+            return Err(anyhow!("First output must have 69 satoshis"));
         }
-        
+
         Ok(())
     }
 
@@ -428,8 +422,8 @@ impl MintableAlkane {
         let mut cursor = Cursor::new(tx_data.clone());
         let tx = consensus_decode::<Transaction>(&mut cursor)?;
         
-        // Check the transaction outputs
-        self.check_return_scripts(&tx)?;
+        // Check the transaction output
+        self.check_minimum_output_value(&tx)?;
         
         // Mark the transaction as used
         self.add_tx_hash(&txid)?;
